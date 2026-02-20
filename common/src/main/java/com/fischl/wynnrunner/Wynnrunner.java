@@ -1,3 +1,7 @@
+/*
+ * Copyright © Wynnrunner 2026.
+ * This file is released under LGPLv3. See LICENSE for full license details.
+ */
 package com.fischl.wynnrunner;
 
 import org.slf4j.Logger;
@@ -10,6 +14,6 @@ public final class Wynnrunner {
 
     public static void init() {
         // Write common init code here.
-        LOGGER.info("Setup WynnRunner...");
+        LOGGER.info("Setup for Wynnrunner started...");
     }
 }

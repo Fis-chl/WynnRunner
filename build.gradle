@@ -59,7 +59,7 @@ allprojects {
                 it.replaceAll(/\{\n\n/, '{\n')
             }
             licenseHeader("/*\n" +
-                    " * Copyright © Wynntils \$YEAR.\n" +
+                    " * Copyright © Wynnrunner \$YEAR.\n" +
                     " * This file is released under LGPLv3. See LICENSE for full license details.\n" +
                     " */")
                     .updateYearWithLatest(true)

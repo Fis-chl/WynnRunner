@@ -35,8 +35,6 @@ repositories {
 dependencies {
     neoForge "net.neoforged:neoforge:$rootProject.neoforge_version"
 
-    modImplementation "dev.architectury:architectury-neoforge:$rootProject.architectury_api_version"
-
     modImplementation("maven.modrinth:wynntils:v${project.wynntils_version}-neoforge")
 
     common(project(path: ':common', configuration: 'namedElements')) { transitive false }
@@ -45,16 +43,16 @@ dependencies {
 
 processResources {
     var replaceProperties = [
-            mod_version                : rootProject.version,
-            minecraft_version          : minecraft_version,
-            neoforge_loader_version    : neoforge_version,
-            wynntils_version           : wynntils_version
+        version                : rootProject.version,
+        minecraft_version          : minecraft_version,
+        neoforge_loader_version    : neoforge_version,
+        wynntils_version           : wynntils_version
     ]
     inputs.properties replaceProperties
 
     filesMatching([
-            'META-INF/neoforge.mods.toml',
-            'pack.mcmeta'
+        'META-INF/neoforge.mods.toml',
+        'pack.mcmeta'
     ]) {
         expand replaceProperties
     }
@@ -65,7 +63,7 @@ shadowJar {
     exclude "fabric.mod.json"
 
     configurations = [
-            project.configurations.shadowCommon
+        project.configurations.shadowCommon
     ]
 
     archiveClassifier = "dev-shadow"
