@@ -5,7 +5,9 @@
     "defaultRequire": 1
   },
   "minVersion": "0.8",
-  "mixins": [],
+  "mixins": [
+    "LootrunModelMixin"
+  ],
   "package": "com.fischl.wynnrunner.mixin",
   "required": true
 }
