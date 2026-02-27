@@ -8,9 +8,12 @@ import com.fischl.wynnrunner.Wynnrunner;
 import com.fischl.wynnrunner.lootrun.handler.LootrunDataHandler;
 import com.fischl.wynnrunner.lootrun.types.Challenge;
 import com.wynntils.core.components.Model;
+import com.wynntils.core.components.Models;
 import com.wynntils.core.text.StyledText;
 import com.wynntils.handlers.particle.event.ParticleVerifiedEvent;
 import com.wynntils.handlers.particle.type.ParticleType;
+import com.wynntils.mc.event.ConnectionEvent;
+import com.wynntils.mc.event.TickEvent;
 import com.wynntils.mc.extension.EntityExtension;
 import com.wynntils.models.beacons.event.BeaconMarkerEvent;
 import com.wynntils.models.beacons.type.Beacon;
@@ -23,6 +26,8 @@ import com.wynntils.models.lootrun.type.MissionType;
 import com.wynntils.models.lootrun.type.TaskLocation;
 import com.wynntils.models.lootrun.type.TaskPrediction;
 import com.wynntils.models.lootrun.type.TrialType;
+import com.wynntils.models.worlds.event.WorldStateEvent;
+import com.wynntils.models.worlds.type.WorldState;
 import com.wynntils.utils.mc.PosUtils;
 import com.wynntils.utils.type.CappedValue;
 import com.wynntils.utils.type.Pair;
@@ -31,18 +36,21 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import net.neoforged.bus.api.SubscribeEvent;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+@SuppressWarnings("AddedMixinMembersNamePattern")
 @Mixin(LootrunModel.class)
 public abstract class LootrunModelMixin extends Model {
     // TODO load an in-progress lootrun
+    @Unique
     private LootrunDataHandler lootrunDataHandler;
-    private Challenge currentChallengeData;
 
     // Shadows
     @Shadow
@@ -88,8 +96,13 @@ public abstract class LootrunModelMixin extends Model {
     @Final
     private static Pattern CHALLENGES_COMPLETED_PATTERN;
 
+    @Unique
+    private String lastLoadedCharacterId = "";
+
     @Shadow
     private List<Pair<Beacon<LootrunBeaconKind>, EntityExtension>> activeBeacons;
+
+    // TODO: Handle persistence of lootrunDataHandler stuff between character selects / logout etc
 
     protected LootrunModelMixin(List<Model> dependencies) {
         super(dependencies);
@@ -98,38 +111,47 @@ public abstract class LootrunModelMixin extends Model {
     @Inject(method = "<init>", at = @At("TAIL"))
     protected void LootrunModel(CallbackInfo ci) {
         lootrunDataHandler = new LootrunDataHandler();
-        currentChallengeData = new Challenge();
         Wynnrunner.info("LootrunModelMixin setup successful - WynnRunner is working properly");
     }
 
     @Inject(method = "onLootrunParticle", at = @At("HEAD"))
     protected void onLootrunParticle(ParticleVerifiedEvent event, CallbackInfo ci) {
-        if (event.getParticle().particleType() != ParticleType.LOOTRUN_TASK) return;
-        // Run through the task location entry set and get the lootrun location, only if the location is currently
-        // unknown
-        if (lootrunDataHandler.getLootrunData().getLocation() == LootrunLocation.UNKNOWN) {
-            LootrunLocation loc = LootrunLocation.UNKNOWN;
-            boolean foundTaskLocation = false;
-            for (Map.Entry<LootrunLocation, Set<TaskLocation>> entry : this.taskLocations.entrySet()) {
-                for (TaskLocation taskLocation : entry.getValue()) {
-                    if (PosUtils.closerThanIgnoringY(
-                            taskLocation.location().toVec3(),
-                            event.getParticle().position(),
-                            TASK_POSITION_ERROR)) {
-                        foundTaskLocation = true;
-                        loc = entry.getKey();
+        if (event.getParticle().particleType() == ParticleType.LOOTRUN_TASK) {
+            // Run through the task location entry set and get the lootrun location, only if the location is currently
+            // unknown
+            if (lootrunDataHandler.getLootrunData().getLocation() == LootrunLocation.UNKNOWN) {
+                LootrunLocation loc = LootrunLocation.UNKNOWN;
+                boolean foundTaskLocation = false;
+                for (Map.Entry<LootrunLocation, Set<TaskLocation>> entry : this.taskLocations.entrySet()) {
+                    for (TaskLocation taskLocation : entry.getValue()) {
+                        if (PosUtils.closerThanIgnoringY(
+                                taskLocation.location().toVec3(),
+                                event.getParticle().position(),
+                                TASK_POSITION_ERROR)) {
+                            foundTaskLocation = true;
+                            loc = entry.getKey();
+                            break;
+                        }
+                    }
+                    if (foundTaskLocation) {
+                        Wynnrunner.info("Lootrun location found - setting as '" + loc.name() + "'");
+                        lootrunDataHandler.setLocation(loc);
                         break;
                     }
-                }
-                if (foundTaskLocation) {
-                    Wynnrunner.info("Lootrun location found - setting as '" + loc.name() + "'");
-                    lootrunDataHandler.setLocation(loc);
-                    break;
                 }
             }
         }
     }
 
+    @Inject(method = "onWorldStateChanged", at = @At("TAIL"))
+    protected void onWorldStateChanged(WorldStateEvent event, CallbackInfo ci) {
+        Wynnrunner.info("World state changed from '" + event.getOldState() + "' to '" + event.getNewState() + "'");
+        if (event.getOldState() == WorldState.WORLD && event.getNewState() != WorldState.WORLD) {
+            lootrunDataHandler.save(false);
+        }
+    }
+
+    // TODO need some way of tracking beacon rerolls
     @Inject(method = "onBeaconMarkerAdded", at = @At("TAIL"))
     protected void onBeaconMarkerAdded(BeaconMarkerEvent.Added event, CallbackInfo ci) {
         BeaconMarker beaconMarker = event.getBeaconMarker();
@@ -145,7 +167,7 @@ public abstract class LootrunModelMixin extends Model {
             }
         }
         if (beaconPair != null) {
-            currentChallengeData.addBeaconOffered(beaconPair.a().beaconKind());
+            lootrunDataHandler.getCurrentChallenge().addBeaconOffered(beaconPair.a().beaconKind());
         }
     }
 
@@ -162,6 +184,7 @@ public abstract class LootrunModelMixin extends Model {
     @Inject(method = "handleStateChange", at = @At("HEAD"))
     protected void handleStateChange(LootrunningState oldState, LootrunningState newState, CallbackInfo ci) {
         if (newState == LootrunningState.NOT_RUNNING) {
+            lootrunDataHandler.save(false);
             return;
         }
 
@@ -170,18 +193,23 @@ public abstract class LootrunModelMixin extends Model {
                 && newState == LootrunningState.IN_TASK
                 && closestBeacon != null
                 && closestBeacon.beaconKind() instanceof LootrunBeaconKind color) {
-            currentChallengeData.setBeaconTaken(color);
+            lootrunDataHandler.getCurrentChallenge().setBeaconTaken(color);
             var prediction = beacons.get(closestBeacon.beaconKind());
             if (prediction != null) {
-                currentChallengeData.setLocation(prediction.taskLocation());
+                lootrunDataHandler.getCurrentChallenge().setLocation(prediction.taskLocation());
             }
         }
     }
 
     @Inject(method = "challengeCompleted", at = @At("TAIL"))
     protected void challengeCompleted(CallbackInfo ci) {
-        lootrunDataHandler.addChallenge(challenges.current(), currentChallengeData);
-        currentChallengeData = new Challenge();
+        lootrunDataHandler.addChallenge(challenges.current());
+    }
+
+    @Inject(method = "challengeFailed", at = @At("TAIL"))
+    protected void challengeFailed(CallbackInfo ci) {
+        lootrunDataHandler.getCurrentChallenge().setFailed(true);
+        lootrunDataHandler.addChallenge(challenges.current());
     }
 
     @Inject(method = "parseCompletedMessages", at = @At("HEAD"))
@@ -215,8 +243,9 @@ public abstract class LootrunModelMixin extends Model {
             matcher = styledText.getMatcher(CHALLENGES_COMPLETED_PATTERN);
             if (matcher.find()) {
                 lootrunDataHandler.setChallengesCompleted(Integer.parseInt(matcher.group(1)));
-                lootrunDataHandler.process();
+                lootrunDataHandler.save(true);
                 lootrunDataHandler.resetLootrunData();
+                lastLoadedCharacterId = "";
             }
         }
     }
@@ -226,8 +255,36 @@ public abstract class LootrunModelMixin extends Model {
         Matcher matcher = styledText.getMatcher(CHALLENGES_COMPLETED_PATTERN);
         if (matcher.find()) {
             lootrunDataHandler.setFailed(true);
-            lootrunDataHandler.process();
+            lootrunDataHandler.save(true);
             lootrunDataHandler.resetLootrunData();
+            lastLoadedCharacterId = "";
+        }
+    }
+
+    @Unique
+    @SubscribeEvent
+    public void onDisconnectedEvent(ConnectionEvent.DisconnectedEvent event) {
+        lootrunDataHandler.save(false);
+        lootrunDataHandler.resetLootrunData();
+        lastLoadedCharacterId = "";
+    }
+
+    @Unique
+    @SubscribeEvent
+    public void onClientTick(TickEvent event) {
+        try {
+            if (Models.WorldState.getCurrentState() != WorldState.WORLD) return;
+            String id = Models.Character.getId();
+            if (id == null || id.isEmpty()) return;
+            if (id.equals(lastLoadedCharacterId)) return;
+            Wynnrunner.info("Detected character change on tick, loading lootrun for " + id);
+            lootrunDataHandler.loadForCharacter(id);
+            if (lootrunDataHandler.getLootrunData().getCharacterId().isEmpty()) {
+                lootrunDataHandler.getLootrunData().setCharacterId(id);
+            }
+            lastLoadedCharacterId = id;
+        } catch (Throwable t) {
+            Wynnrunner.error("Error in lootrun tick poller: " + t);
         }
     }
 }

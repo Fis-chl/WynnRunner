@@ -1,5 +1,5 @@
 /*
- * Copyright © Wynntils 2026.
+ * Copyright © Wynnrunner 2026.
  * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.fischl.wynnrunner.lootrun.types;
@@ -13,6 +13,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 public class LootrunData {
+    private String characterId;
     private final UUID uuid;
     private int challengesCompleted;
     private int timeElapsed;
@@ -29,13 +30,16 @@ public class LootrunData {
     private boolean failed;
 
     public LootrunData() {
+        this.characterId = "";
         this.uuid = UUID.randomUUID();
         challenges = new TreeMap<>();
         missions = new TreeMap<>();
         trials = new TreeMap<>();
+        location = LootrunLocation.UNKNOWN;
     }
 
     public LootrunData(
+            String characterId,
             int challengesCompleted,
             int timeElapsed,
             LootrunLocation location,
@@ -49,6 +53,7 @@ public class LootrunData {
             int mobsKilled,
             int chestsOpened,
             boolean failed) {
+        this.characterId = characterId;
         this.uuid = UUID.randomUUID();
         this.challengesCompleted = challengesCompleted;
         this.timeElapsed = timeElapsed;
@@ -63,6 +68,14 @@ public class LootrunData {
         this.mobsKilled = mobsKilled;
         this.chestsOpened = chestsOpened;
         this.failed = failed;
+    }
+
+    public String getCharacterId() {
+        return characterId;
+    }
+
+    public void setCharacterId(String characterId) {
+        this.characterId = characterId;
     }
 
     public void setLocation(LootrunLocation location) {
@@ -180,5 +193,15 @@ public class LootrunData {
 
     public boolean getFailed() {
         return failed;
+    }
+
+    public int getNumFailedChallenges() {
+        int numFailed = 0;
+        for (Challenge challenge : challenges.values()) {
+            if (challenge.getFailed()) {
+                numFailed++;
+            }
+        }
+        return numFailed;
     }
 }
