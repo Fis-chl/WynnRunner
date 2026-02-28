@@ -54,8 +54,8 @@ public class LootrunDataHandler {
         return lootrunData.getChallenge(number);
     }
 
-    public void addChallenge(int number) {
-        int actualChallengeNum = number + lootrunData.getNumFailedChallenges();
+    public void addChallenge() {
+        int actualChallengeNum = lootrunData.getNextChallengeNumber();
         Wynnrunner.info("Adding challenge " + actualChallengeNum);
         lootrunData.addChallenge(actualChallengeNum, currentChallenge);
         currentChallenge = new Challenge();
@@ -173,6 +173,13 @@ public class LootrunDataHandler {
                     try (java.io.OutputStreamWriter fw = new java.io.OutputStreamWriter(
                             new java.io.FileOutputStream(file, false), java.nio.charset.StandardCharsets.UTF_8)) {
                         gson.toJson(this.lootrunData, fw);
+                    }
+                    if (completed) {
+                        // Need to delete
+                        File tmpFile = getFile(false);
+                        if (!tmpFile.delete()) {
+                            Wynnrunner.error("Unable to delete temp file " + tmpFile.getName());
+                        }
                     }
                     Wynnrunner.info(gson.toJson(this.lootrunData));
                 }

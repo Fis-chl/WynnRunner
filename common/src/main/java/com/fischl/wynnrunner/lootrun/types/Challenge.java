@@ -40,8 +40,14 @@ public class Challenge {
     }
 
     public void addBeaconOffered(LootrunBeaconKind beacon) {
-        if (!beaconsOffered.get(rerolls).contains(beacon)) {
-            beaconsOffered.get(rerolls).add(beacon);
+        if (beaconsOffered.containsKey(rerolls)) {
+            if (!beaconsOffered.get(rerolls).contains(beacon)) {
+                beaconsOffered.get(rerolls).add(beacon);
+            }
+        } else {
+            List<LootrunBeaconKind> listToPut = new ArrayList<>();
+            listToPut.add(beacon);
+            beaconsOffered.put(rerolls, listToPut);
         }
     }
 

@@ -18,7 +18,7 @@ public class LootrunData {
     private int challengesCompleted;
     private int timeElapsed;
     private LootrunLocation location;
-    private Map<Integer, Challenge> challenges;
+    private TreeMap<Integer, Challenge> challenges;
     private Map<MissionType, Boolean> missions;
     private Map<TrialType, Boolean> trials;
     private int rewardPulls;
@@ -43,7 +43,7 @@ public class LootrunData {
             int challengesCompleted,
             int timeElapsed,
             LootrunLocation location,
-            Map<Integer, Challenge> challenges,
+            TreeMap<Integer, Challenge> challenges,
             Map<MissionType, Boolean> missions,
             Map<TrialType, Boolean> trials,
             int rewardPulls,
@@ -68,6 +68,13 @@ public class LootrunData {
         this.mobsKilled = mobsKilled;
         this.chestsOpened = chestsOpened;
         this.failed = failed;
+    }
+
+    public int getNextChallengeNumber() {
+        if (challenges == null || challenges.isEmpty()) {
+            return 1;
+        }
+        return challenges.lastKey() + 1;
     }
 
     public String getCharacterId() {

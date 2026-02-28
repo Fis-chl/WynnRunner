@@ -6,7 +6,6 @@ package com.fischl.wynnrunner.mixin;
 
 import com.fischl.wynnrunner.Wynnrunner;
 import com.fischl.wynnrunner.lootrun.handler.LootrunDataHandler;
-import com.fischl.wynnrunner.lootrun.types.Challenge;
 import com.wynntils.core.components.Model;
 import com.wynntils.core.components.Models;
 import com.wynntils.core.text.StyledText;
@@ -44,6 +43,10 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+/// TODO
+/// Current bugs: When a challenge is failed, the next challenge after is not added to the list of challenges
+/// If you quit mid-challenge there is no record of the in progress challenge
 
 @SuppressWarnings("AddedMixinMembersNamePattern")
 @Mixin(LootrunModel.class)
@@ -167,7 +170,9 @@ public abstract class LootrunModelMixin extends Model {
             }
         }
         if (beaconPair != null) {
-            lootrunDataHandler.getCurrentChallenge().addBeaconOffered(beaconPair.a().beaconKind());
+            lootrunDataHandler
+                    .getCurrentChallenge()
+                    .addBeaconOffered(beaconPair.a().beaconKind());
         }
     }
 
@@ -203,13 +208,13 @@ public abstract class LootrunModelMixin extends Model {
 
     @Inject(method = "challengeCompleted", at = @At("TAIL"))
     protected void challengeCompleted(CallbackInfo ci) {
-        lootrunDataHandler.addChallenge(challenges.current());
+        lootrunDataHandler.addChallenge();
     }
 
     @Inject(method = "challengeFailed", at = @At("TAIL"))
     protected void challengeFailed(CallbackInfo ci) {
         lootrunDataHandler.getCurrentChallenge().setFailed(true);
-        lootrunDataHandler.addChallenge(challenges.current());
+        lootrunDataHandler.addChallenge();
     }
 
     @Inject(method = "parseCompletedMessages", at = @At("HEAD"))
