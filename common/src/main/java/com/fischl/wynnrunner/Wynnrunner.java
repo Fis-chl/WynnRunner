@@ -4,36 +4,70 @@
  */
 package com.fischl.wynnrunner;
 
+import com.fischl.wynnrunner.events.EventBusWrapper;
+import net.neoforged.bus.api.IEventBus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class Wynnrunner {
     public static final String MOD_ID = "wynnrunner";
-
+    private static String version = "";
+    private static boolean developmentBuild = false;
+    private static ModLoader modLoader;
     private static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+    private static IEventBus eventBus;
 
     /* Init */
 
-    public static void init() {
+    public static void init(ModLoader loader, String modVersion, boolean isDevelopmentBuild) {
         // Write common init code here.
-        LOGGER.info("Setup for Wynnrunner started...");
+        modLoader = loader;
+        version = modVersion;
+        developmentBuild = isDevelopmentBuild;
+        if (isDevelopmentBuild) {
+            LOGGER.warn("Wynnrunner setup finished - running dev build (version {})", version);
+        } else {
+            LOGGER.info("Wynnrunner setup finished - running version {}", version);
+        }
+        eventBus = EventBusWrapper.createEventBus();
+    }
+
+    /* Event listener functions */
+
+    /* Utility functions */
+
+    public static String getVersion() {
+        return version;
+    }
+
+    public static boolean isDevelopmentBuild() {
+        return developmentBuild;
+    }
+
+    public static ModLoader getModLoader() {
+        return modLoader;
     }
 
     /* Logging functions */
 
     public static void debug(String msg) {
-        LOGGER.debug(msg);
+        LOGGER.debug("Wynnrunner: {}", msg);
     }
 
     public static void info(String msg) {
-        LOGGER.info(msg);
+        LOGGER.info("Wynnrunner: {}", msg);
     }
 
     public static void warn(String msg) {
-        LOGGER.warn(msg);
+        LOGGER.warn("Wynnrunner: {}", msg);
     }
 
     public static void error(String msg) {
-        LOGGER.error(msg);
+        LOGGER.error("Wynnrunner: {}", msg);
+    }
+
+    public enum ModLoader {
+        FORGE,
+        FABRIC
     }
 }

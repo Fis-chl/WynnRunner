@@ -9,6 +9,8 @@ import com.fischl.wynnrunner.lootrun.handler.LootrunDataHandler;
 import com.wynntils.core.components.Model;
 import com.wynntils.core.components.Models;
 import com.wynntils.core.text.StyledText;
+import com.wynntils.handlers.chat.event.ChatMessageEvent;
+import com.wynntils.handlers.chat.type.RecipientType;
 import com.wynntils.handlers.particle.event.ParticleVerifiedEvent;
 import com.wynntils.handlers.particle.type.ParticleType;
 import com.wynntils.mc.event.ConnectionEvent;
@@ -99,6 +101,10 @@ public abstract class LootrunModelMixin extends Model {
     @Final
     private static Pattern CHALLENGES_COMPLETED_PATTERN;
 
+    @Shadow
+    @Final
+    private static Pattern CHOOSE_BEACON_PATTERN;
+
     @Unique
     private String lastLoadedCharacterId = "";
 
@@ -173,6 +179,23 @@ public abstract class LootrunModelMixin extends Model {
             lootrunDataHandler
                     .getCurrentChallenge()
                     .addBeaconOffered(beaconPair.a().beaconKind());
+        }
+    }
+
+    @Inject(method = "onChatMessage", at = @At("HEAD"))
+    protected void onChatMessage(ChatMessageEvent.Match event, CallbackInfo ci) {
+        if (event.getRecipientType() == RecipientType.INFO) {
+            StyledText styledText = event.getMessage();
+            if (styledText.matches(CHOOSE_BEACON_PATTERN)) {
+                if (lootrunDataHandler.getCurrentChallenge().getRerolls() > 0
+                                && lootrunDataHandler.getCurrentChallenge().getLocation() != null
+                        || !lootrunDataHandler
+                                .getCurrentChallenge()
+                                .getBeaconsOffered()
+                                .isEmpty()) {
+                    lootrunDataHandler.getCurrentChallenge().addReroll();
+                }
+            }
         }
     }
 
