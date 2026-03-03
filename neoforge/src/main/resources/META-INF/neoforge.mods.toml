@@ -9,9 +9,9 @@ version = "${version}"
 displayName = "WynnRunner"
 authors = "Fis-chl"
 description = '''
-
+Extension mod for Wynntils to track more detailed lootrun data
 '''
-#logoFile = ""
+logoFile = "assets/wynnrunner/logo.png"
 
 [[dependencies.wynnrunner]]
 modId = "neoforge"

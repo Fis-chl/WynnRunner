@@ -3,7 +3,7 @@
   "id": "wynnrunner",
   "version": "${version}",
   "name": "Wynnrunner",
-  "description": "",
+  "description": "Extension mod for Wynntils to track more detailed lootrun data",
   "authors": [
     "Fis-chl"
   ],
@@ -11,7 +11,7 @@
     "homepage": "https://github.com/Fis-chl"
   },
   "license": "LGPL-3.0",
-  "icon": "assets/wynnrunner/icon.png",
+  "icon": "assets/wynnrunner/logo.png",
   "environment": "*",
   "entrypoints": {
     "client": [
