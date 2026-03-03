@@ -114,6 +114,8 @@ subprojects {
     base {
         // Set up a suffixed format for the mod jar names, e.g. `example-fabric`.
         archivesName = "$rootProject.archives_name-$project.name"
+        // Uncomment to enable debug logging
+        // loom.log4jConfigs.from "log4j-dev.xml"
     }
 
     repositories {

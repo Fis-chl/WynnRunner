@@ -6,8 +6,7 @@
   },
   "minVersion": "0.8",
   "mixins": [
-    "LootrunModelMixin",
-    "ClientCommandManagerMixin"
+    "LootrunModelMixin"
   ],
   "package": "com.fischl.wynnrunner.mixin",
   "required": true

@@ -4,5 +4,8 @@ Extension mod to Wynntils focused around the collection of data from Lootrunning
 ## Data storage:
 All lootruns for every character you have on Wynncraft are stored under `/.minecraft/wynnrunner/lrdata/`. Each JSON file will begin with your character's ID as reported by Wynntils followed by a unique ID representing the lootrun itself.
 
+## Dependencies
+This mod relies on [Wynntils](https://github.com/Wynntils/Wynntils) being installed.
+
 ## Contributing
 This repo uses **Spotless** to ensure high quality and consistent formatting. We are using the same settings as Wynntils. Please run the `spotlessApply` gradle task before pushing to origin :)

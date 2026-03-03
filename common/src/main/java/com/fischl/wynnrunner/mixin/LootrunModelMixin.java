@@ -16,9 +16,7 @@ import com.wynntils.handlers.particle.type.ParticleType;
 import com.wynntils.mc.event.ConnectionEvent;
 import com.wynntils.mc.event.TickEvent;
 import com.wynntils.mc.extension.EntityExtension;
-import com.wynntils.models.beacons.event.BeaconMarkerEvent;
 import com.wynntils.models.beacons.type.Beacon;
-import com.wynntils.models.beacons.type.BeaconMarker;
 import com.wynntils.models.lootrun.LootrunModel;
 import com.wynntils.models.lootrun.beacons.LootrunBeaconKind;
 import com.wynntils.models.lootrun.type.LootrunLocation;
@@ -152,27 +150,6 @@ public abstract class LootrunModelMixin extends Model {
         }
     }
 
-    @Inject(method = "onBeaconMarkerAdded", at = @At("TAIL"))
-    protected void onBeaconMarkerAdded(BeaconMarkerEvent.Added event, CallbackInfo ci) {
-        BeaconMarker beaconMarker = event.getBeaconMarker();
-        Pair<Beacon<LootrunBeaconKind>, EntityExtension> beaconPair = null;
-        for (Pair<Beacon<LootrunBeaconKind>, EntityExtension> activeBeacon : activeBeacons) {
-            if (activeBeacon
-                    .a()
-                    .beaconKind()
-                    .getCustomColor()
-                    .equals(beaconMarker.color().get())) {
-                beaconPair = activeBeacon;
-                break;
-            }
-        }
-        if (beaconPair != null) {
-            lootrunDataHandler
-                    .getCurrentChallenge()
-                    .addBeaconOffered(beaconPair.a().beaconKind());
-        }
-    }
-
     @Inject(method = "onChatMessage", at = @At("HEAD"))
     protected void onChatMessage(ChatMessageEvent.Match event, CallbackInfo ci) {
         if (event.getRecipientType() == RecipientType.INFO) {
@@ -185,6 +162,11 @@ public abstract class LootrunModelMixin extends Model {
                                 .getBeaconsOffered()
                                 .isEmpty()) {
                     lootrunDataHandler.getCurrentChallenge().addReroll();
+                }
+                for (Pair<Beacon<LootrunBeaconKind>, EntityExtension> beaconPair : activeBeacons) {
+                    lootrunDataHandler
+                            .getCurrentChallenge()
+                            .addBeaconOffered(beaconPair.a().beaconKind());
                 }
             }
         }
@@ -214,7 +196,7 @@ public abstract class LootrunModelMixin extends Model {
                 && closestBeacon.beaconKind() instanceof LootrunBeaconKind color) {
             lootrunDataHandler.getCurrentChallenge().setBeaconTaken(color);
             var prediction = beacons.get(closestBeacon.beaconKind());
-            if (prediction != null) {
+            if (prediction != null && prediction.taskLocation() != null) {
                 lootrunDataHandler.getCurrentChallenge().setLocation(prediction.taskLocation());
             }
         }

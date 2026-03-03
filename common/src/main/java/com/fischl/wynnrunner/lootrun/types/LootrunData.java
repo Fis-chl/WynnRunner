@@ -103,8 +103,10 @@ public class LootrunData {
     }
 
     public void addMission(MissionType mission) {
-        Wynnrunner.debug("Adding mission " + mission.getName() + " to data");
-        this.missions.add(mission);
+        if (!missions.contains(mission)) {
+            Wynnrunner.debug("Adding mission " + mission.getName() + " to data");
+            this.missions.add(mission);
+        }
     }
 
     public void setTrials(List<TrialType> trials) {
@@ -112,8 +114,9 @@ public class LootrunData {
     }
 
     public void addTrial(TrialType trial) {
-        Wynnrunner.debug("Adding trial " + trial.getName() + " to data");
-        this.trials.add(trial);
+        if (!trials.contains(trial)) {
+            this.trials.add(trial);
+        }
     }
 
     public void setChallengesCompleted(int challengesCompleted) {
