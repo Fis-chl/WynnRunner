@@ -4,8 +4,6 @@
  */
 package com.fischl.wynnrunner;
 
-import com.fischl.wynnrunner.events.EventBusWrapper;
-import net.neoforged.bus.api.IEventBus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,7 +13,6 @@ public final class Wynnrunner {
     private static boolean developmentBuild = false;
     private static ModLoader modLoader;
     private static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-    private static IEventBus eventBus;
 
     /* Init */
 
@@ -29,7 +26,6 @@ public final class Wynnrunner {
         } else {
             LOGGER.info("Wynnrunner setup finished - running version {}", version);
         }
-        eventBus = EventBusWrapper.createEventBus();
     }
 
     /* Event listener functions */

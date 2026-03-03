@@ -4,11 +4,12 @@
  */
 package com.fischl.wynnrunner.lootrun.types;
 
-import com.wynntils.core.WynntilsMod;
+import com.fischl.wynnrunner.Wynnrunner;
 import com.wynntils.models.lootrun.type.LootrunLocation;
 import com.wynntils.models.lootrun.type.MissionType;
 import com.wynntils.models.lootrun.type.TrialType;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.TreeMap;
 import java.util.UUID;
 
@@ -18,9 +19,9 @@ public class LootrunData {
     private int challengesCompleted;
     private int timeElapsed;
     private LootrunLocation location;
-    private TreeMap<Integer, Challenge> challenges;
-    private Map<MissionType, Boolean> missions;
-    private Map<TrialType, Boolean> trials;
+    private final TreeMap<Integer, Challenge> challenges;
+    private List<MissionType> missions;
+    private List<TrialType> trials;
     private int rewardPulls;
     private int rewardRerolls;
     private int rewardSacrifices;
@@ -33,8 +34,8 @@ public class LootrunData {
         this.characterId = "";
         this.uuid = UUID.randomUUID();
         challenges = new TreeMap<>();
-        missions = new TreeMap<>();
-        trials = new TreeMap<>();
+        missions = new ArrayList<>();
+        trials = new ArrayList<>();
         location = LootrunLocation.UNKNOWN;
     }
 
@@ -44,8 +45,8 @@ public class LootrunData {
             int timeElapsed,
             LootrunLocation location,
             TreeMap<Integer, Challenge> challenges,
-            Map<MissionType, Boolean> missions,
-            Map<TrialType, Boolean> trials,
+            List<MissionType> missions,
+            List<TrialType> trials,
             int rewardPulls,
             int rewardRerolls,
             int rewardSacrifices,
@@ -59,8 +60,8 @@ public class LootrunData {
         this.timeElapsed = timeElapsed;
         this.location = location;
         this.challenges = new TreeMap<>(challenges);
-        this.missions = new TreeMap<>(missions);
-        this.trials = new TreeMap<>(trials);
+        this.missions = new ArrayList<>(missions);
+        this.trials = new ArrayList<>(trials);
         this.rewardPulls = rewardPulls;
         this.rewardRerolls = rewardRerolls;
         this.rewardSacrifices = rewardSacrifices;
@@ -97,21 +98,22 @@ public class LootrunData {
         challenges.put(number, challenge);
     }
 
-    public void setMissions(TreeMap<MissionType, Boolean> missions) {
-        this.missions = new TreeMap<>(missions);
+    public void setMissions(List<MissionType> missions) {
+        this.missions = new ArrayList<>(missions);
     }
 
-    public void addMission(MissionType mission, boolean complete) {
-        WynntilsMod.info("Adding mission " + mission.getName() + " to data");
-        this.missions.put(mission, complete);
+    public void addMission(MissionType mission) {
+        Wynnrunner.debug("Adding mission " + mission.getName() + " to data");
+        this.missions.add(mission);
     }
 
-    public void setTrials(TreeMap<TrialType, Boolean> trials) {
-        this.trials = new TreeMap<>(trials);
+    public void setTrials(List<TrialType> trials) {
+        this.trials = new ArrayList<>(trials);
     }
 
-    public void addTrial(TrialType trial, boolean complete) {
-        this.trials.put(trial, complete);
+    public void addTrial(TrialType trial) {
+        Wynnrunner.debug("Adding trial " + trial.getName() + " to data");
+        this.trials.add(trial);
     }
 
     public void setChallengesCompleted(int challengesCompleted) {
@@ -158,12 +160,12 @@ public class LootrunData {
         return location;
     }
 
-    public TreeMap<MissionType, Boolean> getMissions() {
-        return new TreeMap<>(missions);
+    public List<MissionType> getMissions() {
+        return new ArrayList<>(missions);
     }
 
-    public TreeMap<TrialType, Boolean> getTrials() {
-        return new TreeMap<>(trials);
+    public List<TrialType> getTrials() {
+        return new ArrayList<>(trials);
     }
 
     public int getChallengesCompleted() {

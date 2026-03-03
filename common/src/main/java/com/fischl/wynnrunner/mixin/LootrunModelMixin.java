@@ -46,14 +46,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/// TODO
-/// Current bugs: When a challenge is failed, the next challenge after is not added to the list of challenges
-/// If you quit mid-challenge there is no record of the in progress challenge
-
 @SuppressWarnings("AddedMixinMembersNamePattern")
 @Mixin(LootrunModel.class)
 public abstract class LootrunModelMixin extends Model {
-    // TODO load an in-progress lootrun
     @Unique
     private LootrunDataHandler lootrunDataHandler;
 
@@ -111,8 +106,6 @@ public abstract class LootrunModelMixin extends Model {
     @Shadow
     private List<Pair<Beacon<LootrunBeaconKind>, EntityExtension>> activeBeacons;
 
-    // TODO: Handle persistence of lootrunDataHandler stuff between character selects / logout etc
-
     protected LootrunModelMixin(List<Model> dependencies) {
         super(dependencies);
     }
@@ -143,8 +136,8 @@ public abstract class LootrunModelMixin extends Model {
                         }
                     }
                     if (foundTaskLocation) {
-                        Wynnrunner.info("Lootrun location found - setting as '" + loc.name() + "'");
-                        lootrunDataHandler.setLocation(loc);
+                        Wynnrunner.debug("Lootrun location found - setting as '" + loc.name() + "'");
+                        lootrunDataHandler.getLootrunData().setLocation(loc);
                         break;
                     }
                 }
@@ -154,13 +147,11 @@ public abstract class LootrunModelMixin extends Model {
 
     @Inject(method = "onWorldStateChanged", at = @At("TAIL"))
     protected void onWorldStateChanged(WorldStateEvent event, CallbackInfo ci) {
-        Wynnrunner.info("World state changed from '" + event.getOldState() + "' to '" + event.getNewState() + "'");
         if (event.getOldState() == WorldState.WORLD && event.getNewState() != WorldState.WORLD) {
             lootrunDataHandler.save(false);
         }
     }
 
-    // TODO need some way of tracking beacon rerolls
     @Inject(method = "onBeaconMarkerAdded", at = @At("TAIL"))
     protected void onBeaconMarkerAdded(BeaconMarkerEvent.Added event, CallbackInfo ci) {
         BeaconMarker beaconMarker = event.getBeaconMarker();
@@ -201,12 +192,12 @@ public abstract class LootrunModelMixin extends Model {
 
     @Inject(method = "addMission", at = @At("HEAD"))
     protected void addMission(MissionType mission, CallbackInfo ci) {
-        lootrunDataHandler.addMission(mission);
+        lootrunDataHandler.getLootrunData().addMission(mission);
     }
 
     @Inject(method = "addTrial", at = @At("HEAD"))
     protected void addTrial(TrialType trial, CallbackInfo ci) {
-        lootrunDataHandler.addTrial(trial);
+        lootrunDataHandler.getLootrunData().addTrial(trial);
     }
 
     @Inject(method = "handleStateChange", at = @At("HEAD"))
@@ -245,32 +236,33 @@ public abstract class LootrunModelMixin extends Model {
         Matcher matcher = styledText.getMatcher(REWARD_PULLS_PATTERN);
         if (matcher.find()) {
             int pulls = Integer.parseInt(matcher.group(1));
-            lootrunDataHandler.setRewardPulls(pulls);
+            lootrunDataHandler.getLootrunData().setRewardPulls(pulls);
         }
 
         matcher = styledText.getMatcher(TIME_ELAPSED_PATTERN);
         if (matcher.find()) {
-            lootrunDataHandler.setTimeElapsed(
-                    Integer.parseInt(matcher.group(1)) * 60 + Integer.parseInt(matcher.group(2)));
+            lootrunDataHandler
+                    .getLootrunData()
+                    .setTimeElapsed(Integer.parseInt(matcher.group(1)) * 60 + Integer.parseInt(matcher.group(2)));
         }
 
         matcher = styledText.getMatcher(REWARD_SACRIFICES_PATTERN);
         if (matcher.find()) {
-            lootrunDataHandler.setRewardSacrifices(Integer.parseInt(matcher.group(1)));
+            lootrunDataHandler.getLootrunData().setRewardSacrifices(Integer.parseInt(matcher.group(1)));
 
             matcher = styledText.getMatcher(CHESTS_OPENED_PATTERN);
             if (matcher.find()) {
-                lootrunDataHandler.setChestsOpened(Integer.parseInt(matcher.group(1)));
+                lootrunDataHandler.getLootrunData().setChestsOpened(Integer.parseInt(matcher.group(1)));
             }
         }
 
         matcher = styledText.getMatcher(LOOTRUN_EXPERIENCE_PATTERN);
         if (matcher.find()) {
-            lootrunDataHandler.setExperienceGained(Integer.parseInt(matcher.group(1)));
+            lootrunDataHandler.getLootrunData().setExperienceGained(Integer.parseInt(matcher.group(1)));
 
             matcher = styledText.getMatcher(CHALLENGES_COMPLETED_PATTERN);
             if (matcher.find()) {
-                lootrunDataHandler.setChallengesCompleted(Integer.parseInt(matcher.group(1)));
+                lootrunDataHandler.getLootrunData().setChallengesCompleted(Integer.parseInt(matcher.group(1)));
                 lootrunDataHandler.save(true);
                 lootrunDataHandler.resetLootrunData();
                 lastLoadedCharacterId = "";
@@ -282,7 +274,7 @@ public abstract class LootrunModelMixin extends Model {
     protected void parseFailedMessages(StyledText styledText, CallbackInfo ci) {
         Matcher matcher = styledText.getMatcher(CHALLENGES_COMPLETED_PATTERN);
         if (matcher.find()) {
-            lootrunDataHandler.setFailed(true);
+            lootrunDataHandler.getLootrunData().setFailed(true);
             lootrunDataHandler.save(true);
             lootrunDataHandler.resetLootrunData();
             lastLoadedCharacterId = "";

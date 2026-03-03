@@ -11,15 +11,11 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonIOException;
 import com.wynntils.core.WynntilsMod;
-import com.wynntils.models.lootrun.type.LootrunLocation;
-import com.wynntils.models.lootrun.type.MissionType;
-import com.wynntils.models.lootrun.type.TrialType;
 import com.wynntils.utils.mc.McUtils;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.TreeMap;
 
 public class LootrunDataHandler {
     private LootrunData lootrunData;
@@ -50,13 +46,9 @@ public class LootrunDataHandler {
         return lootrunData;
     }
 
-    public Challenge getChallenge(int number) {
-        return lootrunData.getChallenge(number);
-    }
-
     public void addChallenge() {
         int actualChallengeNum = lootrunData.getNextChallengeNumber();
-        Wynnrunner.info("Adding challenge " + actualChallengeNum);
+        Wynnrunner.debug("Adding challenge " + actualChallengeNum);
         lootrunData.addChallenge(actualChallengeNum, currentChallenge);
         currentChallenge = new Challenge();
     }
@@ -69,73 +61,9 @@ public class LootrunDataHandler {
         this.lootrunData = new LootrunData();
     }
 
-    public void setLocation(LootrunLocation location) {
-        lootrunData.setLocation(location);
-    }
-
-    public void setMissions(TreeMap<MissionType, Boolean> missions) {
-        lootrunData.setMissions(missions);
-    }
-
-    public void addMission(MissionType mission) {
-        this.addMission(mission, false);
-    }
-
-    public void addMission(MissionType mission, boolean completed) {
-        lootrunData.addMission(mission, completed);
-    }
-
-    public void setTrials(TreeMap<TrialType, Boolean> trials) {
-        lootrunData.setTrials(trials);
-    }
-
-    public void addTrial(TrialType trial) {
-        lootrunData.addTrial(trial, false);
-    }
-
-    public void addTrial(TrialType trial, boolean completed) {
-        lootrunData.addTrial(trial, completed);
-    }
-
-    public void setChallengesCompleted(int challengesCompleted) {
-        lootrunData.setChallengesCompleted(challengesCompleted);
-    }
-
-    public void setTimeElapsed(int timeElapsed) {
-        lootrunData.setTimeElapsed(timeElapsed);
-    }
-
-    public void setRewardPulls(int rewardPulls) {
-        lootrunData.setRewardPulls(rewardPulls);
-    }
-
-    public void setRewardRerolls(int rewardRerolls) {
-        lootrunData.setRewardRerolls(rewardRerolls);
-    }
-
-    public void setRewardSacrifices(int rewardSacrifices) {
-        lootrunData.setRewardSacrifices(rewardSacrifices);
-    }
-
-    public void setExperienceGained(int experienceGained) {
-        lootrunData.setExperienceGained(experienceGained);
-    }
-
-    public void setMobsKilled(int mobsKilled) {
-        lootrunData.setMobsKilled(mobsKilled);
-    }
-
-    public void setChestsOpened(int chestsOpened) {
-        lootrunData.setChestsOpened(chestsOpened);
-    }
-
-    public void setFailed(boolean failed) {
-        lootrunData.setFailed(failed);
-    }
-
     public void loadForCharacter(String characterId) {
         // Check if there is an unfinished lootrun in progress
-        Wynnrunner.info("Looking for in-progress run for character '" + characterId + "'...");
+        Wynnrunner.debug("Looking for in-progress run for character '" + characterId + "'...");
         if (lootrunDir.exists() && lootrunDir.isDirectory()) {
             File[] tmpFiles = lootrunDir.listFiles();
             assert tmpFiles != null;
@@ -164,32 +92,32 @@ public class LootrunDataHandler {
     }
 
     public void save(boolean completed) {
-        if (!getLootrunData().getCharacterId().isEmpty()) {
-            File file = getFile(completed);
-            Wynnrunner.info("Attempting to save lootrun " + file.getAbsolutePath());
-            try {
-                if (file.exists() || file.createNewFile()) {
-                    Gson gson = new GsonBuilder().setPrettyPrinting().create();
-                    try (java.io.OutputStreamWriter fw = new java.io.OutputStreamWriter(
-                            new java.io.FileOutputStream(file, false), java.nio.charset.StandardCharsets.UTF_8)) {
-                        gson.toJson(this.lootrunData, fw);
-                    }
-                    if (completed) {
-                        // Need to delete
-                        File tmpFile = getFile(false);
-                        if (!tmpFile.delete()) {
-                            Wynnrunner.error("Unable to delete temp file " + tmpFile.getName());
-                        }
-                    }
-                    Wynnrunner.info(gson.toJson(this.lootrunData));
+        if (getLootrunData().getCharacterId().isEmpty()) return;
+        File file = getFile(completed);
+        Wynnrunner.debug("Attempting to save lootrun " + file.getAbsolutePath());
+        try {
+            if (file.exists() || file.createNewFile()) {
+                Gson gson = new GsonBuilder().setPrettyPrinting().create();
+                try (java.io.OutputStreamWriter fw = new java.io.OutputStreamWriter(
+                        new java.io.FileOutputStream(file, false), java.nio.charset.StandardCharsets.UTF_8)) {
+                    gson.toJson(this.lootrunData, fw);
                 }
-            } catch (JsonIOException e) {
-                Wynnrunner.error("Unable to process Lootrun data for character "
-                        + getLootrunData().getCharacterId());
-            } catch (IOException e) {
-                Wynnrunner.error("Unable to create file '" + file.getAbsolutePath() + "'");
+                if (completed) {
+                    // Need to delete
+                    File tmpFile = getFile(false);
+                    if (!tmpFile.delete()) {
+                        Wynnrunner.error("Unable to delete temp file " + tmpFile.getName());
+                    }
+                }
+                Wynnrunner.debug("Outputting the following JSON to file: " + gson.toJson(this.lootrunData));
             }
+        } catch (JsonIOException e) {
+            Wynnrunner.error("Unable to process Lootrun data for character "
+                    + getLootrunData().getCharacterId());
+        } catch (IOException e) {
+            Wynnrunner.error("Unable to create file '" + file.getAbsolutePath() + "'");
         }
+
     }
 
     private File getFile(boolean completed) {
