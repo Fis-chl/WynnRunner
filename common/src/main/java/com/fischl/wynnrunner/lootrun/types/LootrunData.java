@@ -14,6 +14,9 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 public class LootrunData {
+    public static final int CURRENT_VERSION = 1;
+
+    private int version;
     private String characterId;
     private final UUID uuid;
     private int challengesCompleted;
@@ -33,6 +36,7 @@ public class LootrunData {
     public LootrunData() {
         this.characterId = "";
         this.uuid = UUID.randomUUID();
+        this.version = CURRENT_VERSION;
         challenges = new TreeMap<>();
         missions = new ArrayList<>();
         trials = new ArrayList<>();
@@ -69,6 +73,7 @@ public class LootrunData {
         this.mobsKilled = mobsKilled;
         this.chestsOpened = chestsOpened;
         this.failed = failed;
+        this.version = CURRENT_VERSION;
     }
 
     public int getNextChallengeNumber() {
@@ -215,5 +220,13 @@ public class LootrunData {
             }
         }
         return numFailed;
+    }
+
+    public int getVersion() {
+        return version;
+    }
+
+    public void setVersion(int version) {
+        this.version = version;
     }
 }

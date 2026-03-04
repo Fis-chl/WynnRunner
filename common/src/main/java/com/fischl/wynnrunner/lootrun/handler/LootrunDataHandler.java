@@ -10,6 +10,8 @@ import com.fischl.wynnrunner.lootrun.types.LootrunData;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonIOException;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.wynntils.core.WynntilsMod;
 import com.wynntils.utils.mc.McUtils;
 import java.io.File;
@@ -73,13 +75,29 @@ public class LootrunDataHandler {
                         && tmpFile.getName().endsWith(".tmp")) {
                     // There can only be one in-progress lootrun for a character
                     try {
-                        lootrunData =
-                                new Gson().fromJson(new FileReader(tmpFile, StandardCharsets.UTF_8), LootrunData.class);
+                        JsonObject json = JsonParser.parseReader(new FileReader(tmpFile, StandardCharsets.UTF_8))
+                                .getAsJsonObject();
+                        int fileVersion =
+                                json.has("version") ? json.get("version").getAsInt() : 0;
+
+                        if (fileVersion > LootrunData.CURRENT_VERSION) {
+                            Wynnrunner.error("Lootrun data format is newer than expected (File: " + fileVersion
+                                    + ", Expected: " + LootrunData.CURRENT_VERSION + "). Creating new data.");
+                            saveAsIs(tmpFile);
+                            break;
+                        }
+
+                        if (fileVersion < LootrunData.CURRENT_VERSION) {
+                            json = LootrunDataUpgrader.upgrade(json);
+                        }
+
+                        lootrunData = new Gson().fromJson(json, LootrunData.class);
                         return;
-                    } catch (IOException e) {
-                        Wynnrunner.error("Unable to read in-progress lootrun data from file '"
+                    } catch (Exception e) {
+                        Wynnrunner.error("Unable to read or upgrade in-progress lootrun data from file '"
                                 + tmpFile.getAbsolutePath() + "': " + e);
-                        return;
+                        saveAsIs(tmpFile);
+                        break;
                     }
                 }
             }
@@ -88,6 +106,15 @@ public class LootrunDataHandler {
             lootrunData.setCharacterId(characterId);
         } else {
             Wynnrunner.error("Unable to find directory '" + lootrunDir.getAbsolutePath() + "'");
+        }
+    }
+
+    private void saveAsIs(File tmpFile) {
+        File backupFile = new File(tmpFile.getParentFile(), tmpFile.getName() + ".bak");
+        if (tmpFile.renameTo(backupFile)) {
+            Wynnrunner.error("Saved invalid/newer lootrun data as: " + backupFile.getName());
+        } else {
+            Wynnrunner.error("Failed to backup invalid/newer lootrun data: " + tmpFile.getName());
         }
     }
 
@@ -117,7 +144,6 @@ public class LootrunDataHandler {
         } catch (IOException e) {
             Wynnrunner.error("Unable to create file '" + file.getAbsolutePath() + "'");
         }
-
     }
 
     private File getFile(boolean completed) {
