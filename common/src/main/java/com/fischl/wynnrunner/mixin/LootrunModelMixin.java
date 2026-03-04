@@ -19,6 +19,7 @@ import com.wynntils.mc.extension.EntityExtension;
 import com.wynntils.models.beacons.type.Beacon;
 import com.wynntils.models.lootrun.LootrunModel;
 import com.wynntils.models.lootrun.beacons.LootrunBeaconKind;
+import com.wynntils.models.lootrun.event.LootrunBeaconSelectedEvent;
 import com.wynntils.models.lootrun.type.LootrunLocation;
 import com.wynntils.models.lootrun.type.LootrunningState;
 import com.wynntils.models.lootrun.type.MissionType;
@@ -188,18 +189,6 @@ public abstract class LootrunModelMixin extends Model {
             lootrunDataHandler.save(false);
             return;
         }
-
-        Beacon closestBeacon = getClosestBeacon();
-        if (oldState == LootrunningState.CHOOSING_BEACON
-                && newState == LootrunningState.IN_TASK
-                && closestBeacon != null
-                && closestBeacon.beaconKind() instanceof LootrunBeaconKind color) {
-            lootrunDataHandler.getCurrentChallenge().setBeaconTaken(color);
-            var prediction = beacons.get(closestBeacon.beaconKind());
-            if (prediction != null && prediction.taskLocation() != null) {
-                lootrunDataHandler.getCurrentChallenge().setLocation(prediction.taskLocation());
-            }
-        }
     }
 
     @Inject(method = "challengeCompleted", at = @At("TAIL"))
@@ -287,6 +276,21 @@ public abstract class LootrunModelMixin extends Model {
             lastLoadedCharacterId = id;
         } catch (Throwable t) {
             Wynnrunner.error("Error in lootrun tick poller: " + t);
+        }
+    }
+
+    @Unique
+    @SubscribeEvent
+    public void onLootrunBeaconSelected(LootrunBeaconSelectedEvent event) {
+        lootrunDataHandler
+                .getCurrentChallenge()
+                .setBeaconTaken(LootrunBeaconKind.fromColor(
+                        event.getBeacon().beaconKind().getCustomColor()));
+        if (event.getTaskLocation() != null) {
+            lootrunDataHandler.getCurrentChallenge().setLocation(event.getTaskLocation());
+        } else {
+            Wynnrunner.error("Unable to determine task location for challenge #"
+                    + lootrunDataHandler.getLootrunData().getNextChallengeNumber());
         }
     }
 }
