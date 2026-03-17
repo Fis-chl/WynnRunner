@@ -19,7 +19,6 @@ import com.wynntils.mc.extension.EntityExtension;
 import com.wynntils.models.beacons.type.Beacon;
 import com.wynntils.models.lootrun.LootrunModel;
 import com.wynntils.models.lootrun.beacons.LootrunBeaconKind;
-import com.wynntils.models.lootrun.event.LootrunBeaconSelectedEvent;
 import com.wynntils.models.lootrun.type.LootrunLocation;
 import com.wynntils.models.lootrun.type.LootrunningState;
 import com.wynntils.models.lootrun.type.MissionType;
@@ -28,6 +27,7 @@ import com.wynntils.models.lootrun.type.TaskPrediction;
 import com.wynntils.models.lootrun.type.TrialType;
 import com.wynntils.models.worlds.event.WorldStateEvent;
 import com.wynntils.models.worlds.type.WorldState;
+import com.wynntils.utils.mc.McUtils;
 import com.wynntils.utils.mc.PosUtils;
 import com.wynntils.utils.type.CappedValue;
 import com.wynntils.utils.type.Pair;
@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -189,6 +190,60 @@ public abstract class LootrunModelMixin extends Model {
             lootrunDataHandler.save(false);
             return;
         }
+        // Sometimes the LootrunBeaconSelected event does not get fired
+        // If we were to subscribe to this event in a method we could possibly miss out on both the beacon taken,
+        // and it's location.
+        // This section is a workaround for the issue
+        Beacon closestBeacon = getClosestBeacon();
+        if (oldState == LootrunningState.CHOOSING_BEACON
+                && newState == LootrunningState.IN_TASK
+                && closestBeacon != null
+                && closestBeacon.beaconKind() instanceof LootrunBeaconKind color) {
+            // Beacon taken should be fine here
+            lootrunDataHandler.getCurrentChallenge().setBeaconTaken(color);
+            // beacons may not contain an entry for the beacon color
+            var prediction = beacons.get(closestBeacon.beaconKind());
+            if (prediction != null && prediction.taskLocation() != null) {
+                lootrunDataHandler.getCurrentChallenge().setLocation(prediction.taskLocation());
+            } else {
+                Wynnrunner.warn("Unable to determine task location for challenge #"
+                        + lootrunDataHandler.getLootrunData().getNextChallengeNumber()
+                        + " estimating based on position...");
+                Vec3 playerPos = McUtils.player().position();
+                if (lootrunDataHandler.getLootrunData().getLocation() == LootrunLocation.UNKNOWN) {
+                    Wynnrunner.error("Unable to determine lootrun location for challenge #"
+                            + lootrunDataHandler.getLootrunData().getNextChallengeNumber()
+                            + " unable to estimate task location");
+                    return;
+                }
+                TaskLocation bestLocation = getBestTaskLocation(
+                        playerPos, lootrunDataHandler.getLootrunData().getLocation());
+                if (bestLocation != null) {
+                    lootrunDataHandler.getCurrentChallenge().setLocation(bestLocation);
+                    Wynnrunner.info("Estimated task location for challenge #"
+                            + lootrunDataHandler.getLootrunData().getNextChallengeNumber()
+                            + " as " + bestLocation.name());
+                } else {
+                    Wynnrunner.error("Unable to determine task location for challenge #"
+                            + lootrunDataHandler.getLootrunData().getNextChallengeNumber()
+                            + " unable to estimate task location");
+                }
+            }
+        }
+    }
+
+    @Unique
+    protected TaskLocation getBestTaskLocation(Vec3 playerPos, LootrunLocation location) {
+        TaskLocation bestLocation = null;
+        for (TaskLocation loc : taskLocations.get(location)) {
+            if (bestLocation == null
+                    || getDistanceBetweenIgnoringY(playerPos, loc.location().toVec3())
+                            < getDistanceBetweenIgnoringY(
+                                    playerPos, bestLocation.location().toVec3())) {
+                bestLocation = loc;
+            }
+        }
+        return bestLocation;
     }
 
     @Inject(method = "challengeCompleted", at = @At("TAIL"))
@@ -280,17 +335,7 @@ public abstract class LootrunModelMixin extends Model {
     }
 
     @Unique
-    @SubscribeEvent
-    public void onLootrunBeaconSelected(LootrunBeaconSelectedEvent event) {
-        lootrunDataHandler
-                .getCurrentChallenge()
-                .setBeaconTaken(LootrunBeaconKind.fromColor(
-                        event.getBeacon().beaconKind().getCustomColor()));
-        if (event.getTaskLocation() != null) {
-            lootrunDataHandler.getCurrentChallenge().setLocation(event.getTaskLocation());
-        } else {
-            Wynnrunner.error("Unable to determine task location for challenge #"
-                    + lootrunDataHandler.getLootrunData().getNextChallengeNumber());
-        }
+    public double getDistanceBetweenIgnoringY(Vec3 pos1, Vec3 pos2) {
+        return Math.sqrt(Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.z - pos2.z, 2));
     }
 }
