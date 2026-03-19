@@ -206,13 +206,14 @@ public abstract class LootrunModelMixin extends Model {
             if (prediction != null && prediction.taskLocation() != null) {
                 lootrunDataHandler.getCurrentChallenge().setLocation(prediction.taskLocation());
             } else {
+                int nextChallengeNumber = lootrunDataHandler.getLootrunData().getNextChallengeNumber();
                 Wynnrunner.warn("Unable to determine task location for challenge #"
-                        + lootrunDataHandler.getLootrunData().getNextChallengeNumber()
+                        + nextChallengeNumber
                         + " estimating based on position...");
                 Vec3 playerPos = McUtils.player().position();
                 if (lootrunDataHandler.getLootrunData().getLocation() == LootrunLocation.UNKNOWN) {
                     Wynnrunner.error("Unable to determine lootrun location for challenge #"
-                            + lootrunDataHandler.getLootrunData().getNextChallengeNumber()
+                            + nextChallengeNumber
                             + " unable to estimate task location");
                     return;
                 }
@@ -221,11 +222,11 @@ public abstract class LootrunModelMixin extends Model {
                 if (bestLocation != null) {
                     lootrunDataHandler.getCurrentChallenge().setLocation(bestLocation);
                     Wynnrunner.info("Estimated task location for challenge #"
-                            + lootrunDataHandler.getLootrunData().getNextChallengeNumber()
+                            + nextChallengeNumber
                             + " as " + bestLocation.name());
                 } else {
                     Wynnrunner.error("Unable to determine task location for challenge #"
-                            + lootrunDataHandler.getLootrunData().getNextChallengeNumber()
+                            + nextChallengeNumber
                             + " unable to estimate task location");
                 }
             }
