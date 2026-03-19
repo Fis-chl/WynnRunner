@@ -27,6 +27,7 @@ import com.wynntils.models.lootrun.type.TaskPrediction;
 import com.wynntils.models.lootrun.type.TrialType;
 import com.wynntils.models.worlds.event.WorldStateEvent;
 import com.wynntils.models.worlds.type.WorldState;
+import com.wynntils.utils.mc.McUtils;
 import com.wynntils.utils.mc.PosUtils;
 import com.wynntils.utils.type.CappedValue;
 import com.wynntils.utils.type.Pair;
@@ -35,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -188,18 +190,64 @@ public abstract class LootrunModelMixin extends Model {
             lootrunDataHandler.save(false);
             return;
         }
-
+        // Sometimes the LootrunBeaconSelected event does not get fired
+        // If we were to subscribe to this event in a method we could possibly miss out on both the beacon taken,
+        // and its location.
+        // This section is a workaround for the issue
         Beacon closestBeacon = getClosestBeacon();
         if (oldState == LootrunningState.CHOOSING_BEACON
                 && newState == LootrunningState.IN_TASK
                 && closestBeacon != null
                 && closestBeacon.beaconKind() instanceof LootrunBeaconKind color) {
+            // Beacon taken should be fine here
             lootrunDataHandler.getCurrentChallenge().setBeaconTaken(color);
-            var prediction = beacons.get(closestBeacon.beaconKind());
+            // beacons may not contain an entry for the beacon color
+            var prediction = beacons.get(color);
             if (prediction != null && prediction.taskLocation() != null) {
                 lootrunDataHandler.getCurrentChallenge().setLocation(prediction.taskLocation());
+            } else {
+                int nextChallengeNumber = lootrunDataHandler.getLootrunData().getNextChallengeNumber();
+                Wynnrunner.warn("Unable to determine task location for challenge #"
+                        + nextChallengeNumber
+                        + " estimating based on position...");
+                Vec3 playerPos = McUtils.player().position();
+                if (lootrunDataHandler.getLootrunData().getLocation() == LootrunLocation.UNKNOWN) {
+                    Wynnrunner.error("Unable to determine lootrun location for challenge #"
+                            + nextChallengeNumber
+                            + " unable to estimate task location");
+                    return;
+                }
+                TaskLocation bestLocation = getBestTaskLocation(
+                        playerPos, lootrunDataHandler.getLootrunData().getLocation());
+                if (bestLocation != null) {
+                    lootrunDataHandler.getCurrentChallenge().setLocation(bestLocation);
+                    Wynnrunner.info("Estimated task location for challenge #"
+                            + nextChallengeNumber
+                            + " as " + bestLocation.name());
+                } else {
+                    Wynnrunner.error("Unable to determine task location for challenge #"
+                            + nextChallengeNumber
+                            + " unable to estimate task location");
+                }
             }
         }
+    }
+
+    @Unique
+    protected TaskLocation getBestTaskLocation(Vec3 playerPos, LootrunLocation location) {
+        TaskLocation bestLocation = null;
+        double bestDistanceSq = Double.POSITIVE_INFINITY;
+        for (TaskLocation loc : taskLocations.get(location)) {
+            Vec3 locPos = loc.location().toVec3();
+            double dx = playerPos.x - locPos.x;
+            double dz = playerPos.z - locPos.z;
+            double distanceSq = dx * dx + dz * dz;
+            if (bestLocation == null || distanceSq < bestDistanceSq) {
+                bestDistanceSq = distanceSq;
+                bestLocation = loc;
+            }
+        }
+        return bestLocation;
     }
 
     @Inject(method = "challengeCompleted", at = @At("TAIL"))
