@@ -192,7 +192,7 @@ public abstract class LootrunModelMixin extends Model {
         }
         // Sometimes the LootrunBeaconSelected event does not get fired
         // If we were to subscribe to this event in a method we could possibly miss out on both the beacon taken,
-        // and it's location.
+        // and its location.
         // This section is a workaround for the issue
         Beacon closestBeacon = getClosestBeacon();
         if (oldState == LootrunningState.CHOOSING_BEACON
@@ -202,7 +202,7 @@ public abstract class LootrunModelMixin extends Model {
             // Beacon taken should be fine here
             lootrunDataHandler.getCurrentChallenge().setBeaconTaken(color);
             // beacons may not contain an entry for the beacon color
-            var prediction = beacons.get(closestBeacon.beaconKind());
+            var prediction = beacons.get(color);
             if (prediction != null && prediction.taskLocation() != null) {
                 lootrunDataHandler.getCurrentChallenge().setLocation(prediction.taskLocation());
             } else {
@@ -235,11 +235,14 @@ public abstract class LootrunModelMixin extends Model {
     @Unique
     protected TaskLocation getBestTaskLocation(Vec3 playerPos, LootrunLocation location) {
         TaskLocation bestLocation = null;
+        double bestDistanceSq = Double.POSITIVE_INFINITY;
         for (TaskLocation loc : taskLocations.get(location)) {
-            if (bestLocation == null
-                    || getDistanceBetweenIgnoringY(playerPos, loc.location().toVec3())
-                            < getDistanceBetweenIgnoringY(
-                                    playerPos, bestLocation.location().toVec3())) {
+            Vec3 locPos = loc.location().toVec3();
+            double dx = playerPos.x - locPos.x;
+            double dz = playerPos.z - locPos.z;
+            double distanceSq = dx * dx + dz * dz;
+            if (bestLocation == null || distanceSq < bestDistanceSq) {
+                bestDistanceSq = distanceSq;
                 bestLocation = loc;
             }
         }
@@ -332,10 +335,5 @@ public abstract class LootrunModelMixin extends Model {
         } catch (Throwable t) {
             Wynnrunner.error("Error in lootrun tick poller: " + t);
         }
-    }
-
-    @Unique
-    public double getDistanceBetweenIgnoringY(Vec3 pos1, Vec3 pos2) {
-        return Math.sqrt(Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.z - pos2.z, 2));
     }
 }
